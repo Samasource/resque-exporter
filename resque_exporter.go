@@ -3,11 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -135,33 +132,12 @@ func NewExporter(redisURL, redisNamespace string) (*Exporter, error) {
 }
 
 func newRedisClient(redisURL string) (*redis.Client, error) {
-	var options redis.Options
-
-	u, err := url.Parse(redisURL)
+	options, err := redis.ParseURL(redisURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if u.Scheme == "redis" || u.Scheme == "tcp" {
-		options.Network = "tcp"
-		options.Addr = net.JoinHostPort(u.Hostname(), u.Port())
-		if len(u.Path) > 1 {
-			if db, err := strconv.Atoi(u.Path[1:]); err == nil {
-				options.DB = db
-			}
-		}
-	} else if u.Scheme == "unix" {
-		options.Network = "unix"
-		options.Addr = u.Path
-	} else {
-		return nil, fmt.Errorf("unknown URL scheme: %s", u.Scheme)
-	}
-
-	if password, ok := u.User.Password(); ok {
-		options.Password = password
-	}
-
-	return redis.NewClient(&options), nil
+	return redis.NewClient(options), nil
 }
 
 // Describe implements prometheus.Collector.
